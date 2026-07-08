@@ -1,0 +1,137 @@
+﻿<Window x:Class="Workbencher.Windows.AuthWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Workbencher.Windows"
+        mc:Ignorable="d"
+        Title="Welcome to Workbencher" Height="490" Width="800"
+        Background="White">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3.5*"/>
+            <ColumnDefinition Width="6.5*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.Background>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#4B0082" Offset="0" />
+                    <GradientStop Color="#6A0D91" Offset="1" />
+                </LinearGradientBrush>
+            </Grid.Background>
+            <Path Data="M 0,0 L 300,500 L 0,500 Z" Fill="#11FFFFFF"/>
+            <StackPanel VerticalAlignment="Center" Margin="20">
+                <!-- Removed unsupported LetterSpacing property -->
+                <TextBlock Text="Workbencher" FontSize="36" FontWeight="Black" Foreground="White"/>
+                <TextBlock Text="Your Unified Workspace Suite" FontSize="14" Foreground="#D2E8DB" Margin="2,5,0,0" TextWrapping="Wrap" Opacity="0.8"/>
+
+                <Border BorderBrush="White" BorderThickness="0,1,0,0" Margin="0,20,0,20" Opacity="0.3"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                    <TextBlock Text="✓" Foreground="#00FFCC" FontWeight="Bold" Margin="0,0,10,0"/>
+                    <TextBlock Text="Secure Kanban Boards" Foreground="White" FontSize="12"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                    <TextBlock Text="✓" Foreground="#00FFCC" FontWeight="Bold" Margin="0,0,10,0"/>
+                    <TextBlock Text="Team Calendar Engine" Foreground="White" FontSize="12"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                    <TextBlock Text="✓" Foreground="#00FFCC" FontWeight="Bold" Margin="0,0,10,0"/>
+                    <TextBlock Text="Real-Time Chatrooms" Foreground="White" FontSize="12"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+        <Grid Grid.Column="1" Margin="25,25,30,20" HorizontalAlignment="Center" VerticalAlignment="Center" Width="420">
+            <Border Background="#cdc1ff" CornerRadius="12" Padding="20,20,40,20">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="25" Color="#000000" Opacity="0.2" ShadowDepth="4"/>
+                </Border.Effect>
+
+                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                    <Grid.Resources>
+                        <Style TargetType="TextBox">
+                            <Setter Property="Height" Value="38"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="10,0,10,0"/>
+                            <Setter Property="BorderBrush" Value="#AFA2E5"/>
+                            <Setter Property="Background" Value="#F6F4FF"/>
+                            <Setter Property="Margin" Value="0,0,0,15"/>
+                            <Style.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Style.Resources>
+                        </Style>
+
+                        <Style TargetType="PasswordBox">
+                            <Setter Property="Height" Value="38"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="10,0,10,0"/>
+                            <Setter Property="BorderBrush" Value="#AFA2E5"/>
+                            <Setter Property="Background" Value="#F6F4FF"/>
+                            <Setter Property="Margin" Value="0,0,0,15"/>
+                            <Style.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Style.Resources>
+                        </Style>
+
+                        <Style TargetType="Label">
+                            <Setter Property="FontSize" Value="12"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Foreground" Value="#2E0854"/>
+                            <Setter Property="Padding" Value="2,0,0,4"/>
+                        </Style>
+                    </Grid.Resources>
+                    <StackPanel x:Name="LoginPanel" Visibility="Visible">
+                        <TextBlock Text="Welcome Back!" FontSize="26" FontWeight="Bold" Foreground="#2E0854"/>
+                        <TextBlock Text="Please sign in to your account" FontSize="14" Foreground="#444444" Margin="0,5,0,20"/>
+
+                        <Label Content="Email"/>
+                        <TextBox x:Name="LoginEmailTextBox"/>
+                        <Label Content="Password"/>
+                        <PasswordBox x:Name="LoginPasswordBox"/>
+
+                        <Button Content="Login" Click="LoginButton_Click" Height="42" Background="#2E0854" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="10"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="13">
+                        <Run Text="New to the team?" Foreground="#555555"/>
+                        <Hyperlink Click="GoToRegister_Click" Foreground="#2E0854" FontWeight="Bold" TextDecorations="{x:Null}">Create an account</Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel x:Name="RegisterPanel" Visibility="Collapsed">
+                        <TextBlock Text="Welcome To Workbencher!" FontSize="26" FontWeight="Bold" Foreground="#2E0854"/>
+                        <TextBlock Text="Let's begin our journey by signing up!" FontSize="14" Foreground="#444444" Margin="0,5,0,20"/>
+
+                        <Label Content="Email"/>
+                        <TextBox x:Name="RegisterEmailTextBox"/>
+                        <Label Content="Password"/>
+                        <PasswordBox x:Name="RegisterPasswordBox"/>
+                        <Label Content="Retype Password"/>
+                        <PasswordBox x:Name="RegisterRetypePasswordBox"/>
+
+                        <Button Content="Register" Click="RegisterButton_Click" Height="42" Background="#2E0854" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="10"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="13">
+                        <Run Text="Already part of the team?" Foreground="#555555"/>
+                        <Hyperlink Click="GoToLogin_Click" Foreground="#2E0854" FontWeight="Bold" TextDecorations="{x:Null}">Log in</Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

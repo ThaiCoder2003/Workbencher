@@ -1,0 +1,119 @@
+﻿<UserControl x:Class="Workbencher.UIs.ProjectDetailView.ProjectTaskAssignView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#CDC1FF" CornerRadius="8" Padding="20" Margin="0,0,0,20" BorderBrush="#E2E8F0" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="📋 Create &amp; Assign New Project Task" FontSize="16" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,15"/>
+
+                <UniformGrid Columns="4" Margin="0,0,0,10">
+                    <StackPanel Margin="0,0,10,0">
+                        <TextBlock Text="Task Title" Margin="0,0,0,5" Foreground="#64748B" FontSize="12"/>
+                        <TextBox x:Name="TxtTitle" Padding="8,5" BorderBrush="#4E217A">
+                            <TextBox.Resources>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,10,0">
+                        <TextBlock Text="Assignee Member" Margin="0,0,0,5" Foreground="#64748B" FontSize="12"/>
+                        <ComboBox x:Name="CbAssignee" 
+                          DisplayMemberPath="User.Email" 
+                          SelectedValuePath="UserId" 
+                          Padding="8,5" 
+                          BorderBrush="#4E217A"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,10,0">
+                        <TextBlock Text="Deadline Date" Margin="0,0,0,5" Foreground="#64748B" FontSize="12"/>
+                        <DatePicker x:Name="DPDeadline" Padding="5,2" BorderBrush="#4E217A"/>
+                    </StackPanel>
+
+                    <Button Content="➕ Assign Task" Click="AssignTask_Click" Background="#4E217A" Foreground="White" FontWeight="SemiBold" Height="32" VerticalAlignment="Bottom" Cursor="Hand" BorderThickness="0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </UniformGrid>
+
+                <StackPanel>
+                    <TextBlock Text="Description" Margin="0,0,0,5" Foreground="#64748B" FontSize="12"/>
+                    <TextBox x:Name="TxtDescription" Padding="8,5" Height="45" AcceptsReturn="True" TextWrapping="Wrap" BorderBrush="#4E217A">
+                        <TextBox.Resources>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </TextBox.Resources>
+                    </TextBox>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Background="#CDC1FF" CornerRadius="8" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+
+                <DataGrid x:Name="DgTasks" 
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="False" 
+                  GridLinesVisibility="Horizontal" 
+                  HorizontalGridLinesBrush="#F1F5F9" 
+                  MinRowHeight="38" 
+                  Background="Transparent" 
+                  BorderThickness="0" 
+                  HeadersVisibility="Column">
+
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#F8FAFC"/>
+                            <Setter Property="Foreground" Value="#64748B"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="#4E217A"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="180"/>
+                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                        <DataGridTextColumn Header="Assigned To" Binding="{Binding AssignedToUser.Email}" Width="150"/>
+                        <DataGridTextColumn Header="Deadline" Binding="{Binding Deadline, StringFormat=\{0:d\}}" Width="110"/>
+
+                        <DataGridTemplateColumn Header="Description" Width="*" MinWidth="250">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Description}" 
+                                       TextWrapping="Wrap" 
+                                       VerticalAlignment="Center"
+                                       Padding="10,6"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Actions" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="✏️" Click="EditTask_Click" Tag="{Binding}" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0" ToolTip="Edit Task"/>
+                                        <Button Content="🗑️" Click="DeleteTask_Click" Tag="{Binding}" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Delete Task"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

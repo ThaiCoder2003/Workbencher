@@ -1,0 +1,63 @@
+﻿<Window x:Class="Workbencher.Windows.EditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Workbencher.Windows"
+        Title="Edit Task"
+        Height="400" Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8FAFC">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Task Title" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4" FontSize="12"/>
+            <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Background="White" Padding="2">
+                <TextBox x:Name="TxtTitle" BorderThickness="0" Background="Transparent" FontSize="13"/>
+            </Border>
+            
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="Description" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4" FontSize="12"/>
+            <Border BorderBrush="#CBD5E1" BorderThickness="1" Background="White" Padding="2" CornerRadius="4">
+                <TextBox x:Name="TxtDescription" Height="70" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Padding="6" BorderBrush="#CBD5E1" FontSize="13"/>
+            </Border>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Margin="0,0,0,16">
+            <TextBlock Text="Deadline" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4" FontSize="12"/>
+            <DatePicker x:Name="DPDeadline" Padding="4"/>
+        </StackPanel>
+        <StackPanel Grid.Row="3" Margin="0,0,0,16">
+            <TextBlock Text="Select Project" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4" FontSize="12"/>
+            <ComboBox x:Name="CbProject" DisplayMemberPath="Name" SelectedValuePath="Id" Padding="5"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+            <Button x:Name="CancelBtn" Content="Cancel" Click="Cancel_Click" Width="80" Height="30" Background="#E2E8F0" Foreground="#475569" BorderThickness="0" Margin="0,0,8,0">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="4"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+
+            <Button x:Name="SaveBtn" Content="Save Changes" Click="Save_Click" Width="100" Height="30" Background="#3B82F6" Foreground="White" BorderThickness="0" FontWeight="SemiBold">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="4"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,191 @@
+﻿<UserControl x:Class="Workbencher.UIs.CalendarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:config="clr-namespace:Workbencher.Config"
+             Background="#F8FAFC">
+    <UserControl.Resources>
+        <config:CalendarDeadlineConverter x:Key="DeadlineConverter"/>
+        <config:StatusDisplayConverter x:Key="StatusDisplayConverter"/>
+        <Style TargetType="Calendar">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Calendar">
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}" 
+                            Background="{TemplateBinding Background}" 
+                            CornerRadius="8">
+                            <CalendarItem x:Name="PART_CalendarItem" 
+                                      Style="{TemplateBinding CalendarItemStyle}"
+                                      HorizontalAlignment="Stretch" 
+                                      VerticalAlignment="Stretch"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Setter Property="CalendarDayButtonStyle">
+                <Setter.Value>
+                    <!-- Customize each day tile block inside the matrix -->
+                    <Style TargetType="CalendarDayButton">
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="MinWidth" Value="40"/>
+                        <Setter Property="MinHeight" Value="40"/>
+                        <Setter Property="Background">
+                            <Setter.Value>
+                                <!-- MultiBinding passes both the button's Date and the Tasks list to our converter -->
+                                <MultiBinding Converter="{StaticResource DeadlineConverter}">
+                                    <Binding Path="Date"/>
+                                    <Binding Path="AllTasks" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                </MultiBinding>
+                            </Setter.Value>
+                        </Setter>
+                        <!-- Give a nice rounded look to the cells -->
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="CalendarDayButton">
+                                    <Border Background="{TemplateBinding Background}" 
+                                            BorderBrush="#F1F5F9" 
+                                            BorderThickness="0.5" 
+                                            CornerRadius="6" 
+                                            Margin="2">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+
+            <Setter Property="CalendarItemStyle">
+                <Setter.Value>
+                    <Style TargetType="CalendarItem">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="CalendarItem">
+                                    <Grid x:Name="PART_Root" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button x:Name="PART_PreviousButton" Grid.Column="0" Content="&lt;" Width="32" Height="32" Focusable="False" Background="#F1F5F9" BorderThickness="0" Cursor="Hand"/>
+                                            <Button x:Name="PART_HeaderButton" Grid.Column="1" FontWeight="Bold" FontSize="14" Focusable="False" Background="Transparent" BorderThickness="0" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand"/>
+                                            <Button x:Name="PART_NextButton" Grid.Column="2" Content="&gt;" Width="32" Height="32" Focusable="False" Background="#F1F5F9" BorderThickness="0" Cursor="Hand"/>
+                                        </Grid>
+
+                                        <Grid Grid.Row="1" x:Name="PART_MonthView" Visibility="Visible" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                        </Grid>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="24">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="320"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#CDC1FF" CornerRadius="16" Padding="24" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,24,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.04" Color="#0F172A"/>
+            </Border.Effect>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                    <TextBlock Text="📅 Central Workspace Calendar" FontSize="20" FontWeight="Bold" Foreground="#0F172A"/>
+                    <TextBlock Text="Track project timelines, personal assignments, and milestones." FontSize="13" Foreground="#64748B" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <Calendar Grid.Row="1" x:Name="MainWorkspaceCalendar" 
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          SelectedDatesChanged="MainWorkspaceCalendar_SelectedDatesChanged"
+                          Background="Lavender"
+                          BorderBrush="Lavender">
+                </Calendar>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Background="#CDC1FF" CornerRadius="16" Padding="20" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.04" Color="#0F172A"/>
+            </Border.Effect>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" x:Name="TxtSelectedDate" Text="Select a Date" FontSize="16" FontWeight="SemiBold" Foreground="#1E293B"/>
+                <TextBlock Grid.Row="1" x:Name="TxtTaskCount" Text="0 active deadlines found" FontSize="12" Foreground="#64748B" Margin="0,4,0,16"/>
+
+                <Separator Grid.Row="1" VerticalAlignment="Bottom" Background="#F1F5F9" Margin="0,0,0,12"/>
+
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ListBox x:Name="LstSelectedDayTasks" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" TextWrapping="Wrap"/>
+
+                                            <Border Grid.Column="1" Background="#FEE2E2" CornerRadius="4" Padding="6,2" VerticalAlignment="Top" Margin="4,0,0,0">
+                                                <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold" Foreground="{Binding Status, Converter={StaticResource StatusDisplayConverter}}"/>
+                                            </Border>
+                                        </Grid>
+
+                                        <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#64748B" Margin="0,6,0,0" TextWrapping="Wrap" MaxHeight="40"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

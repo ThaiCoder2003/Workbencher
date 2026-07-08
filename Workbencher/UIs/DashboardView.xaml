@@ -1,0 +1,114 @@
+﻿<UserControl x:Class="Workbencher.UIs.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:cfg="clr-namespace:Workbencher.Config"
+             mc:Ignorable="d" 
+             d:DesignHeight="650" d:DesignWidth="1000"
+             Background="Transparent">
+    <UserControl.Resources>
+        <cfg:StatusBoolConverter x:Key="StatusBoolConverter"/>
+    </UserControl.Resources>
+    <Grid Background="#F9F8FC" Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <UniformGrid Grid.Row="0" Columns="3" Margin="0,0,0,30">
+
+            <Border Background="#CDC1FF" CornerRadius="16" Margin="0,0,15,0" Padding="20">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.04" ShadowDepth="2"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="📁 Active Workspace Projects" FontSize="13" Foreground="#777777" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding ProjectCount}" FontSize="38" FontWeight="Bold" Foreground="#2E0854" Margin="0,12,0,4"/>
+                    <TextBlock Text="Live from Supabase Cloud" FontSize="11" Foreground="#27AE60" FontWeight="Medium"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#CDC1FF" CornerRadius="16" Margin="10,0,10,0" Padding="20">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.04" ShadowDepth="2"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="📋 Assigned Tasks Remaining" FontSize="13" Foreground="#777777" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding PendingTaskCount}" FontSize="38" FontWeight="Bold" Foreground="#2E0854" Margin="0,12,0,4"/>
+                    <TextBlock Text="Items awaiting processing" FontSize="11" Foreground="#4E217A" FontWeight="Medium"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#CDC1FF" CornerRadius="16" Margin="15,0,0,0" Padding="20">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.04" ShadowDepth="2"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="⚡ PostgreSQL Sync Status" FontSize="13" Foreground="#777777" FontWeight="SemiBold"/>
+                    <TextBlock Text="Online" FontSize="34" FontWeight="Bold" Foreground="#2E0854" Margin="0,14,0,6"/>
+                    <TextBlock Text="Connected via Pooler Proxy" FontSize="11" Foreground="#8E44AD" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#CDC1FF" CornerRadius="16" Margin="0,0,20,0" Padding="25">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.04" ShadowDepth="2"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="My Action Plan Strategy" FontSize="18" FontWeight="Bold" Foreground="#2E0854" Margin="0,0,0,20"/>
+
+                    <Grid Grid.Row="1">
+                        <ItemsControl ItemsSource="{Binding UrgentTasks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox 
+                                        Content="{Binding Title}" 
+                                        IsChecked="{Binding Status, Converter={StaticResource StatusBoolConverter}, Mode=TwoWay}" 
+                                        Foreground="#555555" 
+                                        Margin="0,6,0,6" 
+                                        Checked="CheckBox_Checked"
+                                        Tag="{Binding}"
+                                     />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Background="#CDC1FF" CornerRadius="16" Padding="25">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.04" ShadowDepth="2"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Recent Activity Stream" FontSize="18" FontWeight="Bold" Foreground="#2E0854" Margin="0,0,0,20"/>
+
+                    <StackPanel Grid.Row="1" VerticalAlignment="Top">
+                        <TextBlock Text="⚙️ Core database connection context verified" FontSize="13" Foreground="#27AE60" Margin="0,5"/>
+                        <TextBlock Text="📁 New Workspace entity schema map pushed" FontSize="13" Foreground="#333333" Margin="0,5"/>
+                        <TextBlock Text="👤 Developer initialized session handshake" FontSize="13" Foreground="#666666" Margin="0,5"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
+

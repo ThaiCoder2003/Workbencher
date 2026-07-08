@@ -1,0 +1,322 @@
+﻿<UserControl x:Class="Workbencher.UIs.ChatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Workbencher.UIs"
+             mc:Ignorable="d" 
+             d:DesignHeight="550" d:DesignWidth="900">
+
+    <Grid Background="#F8FAFC">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#7D2378" BorderBrush="#0F172A" BorderThickness="0,0,1,0">
+            <Grid Margin="15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="CHAT ROOMS" Foreground="#94A3B8" FontSize="11" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Row="1" Margin="0,0,0,20">
+                    <TextBlock Text="Project Chats" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,0,20"/>
+                    <ListBox x:Name="LstProjectChats" 
+                             ItemsSource="{Binding GroupChatRooms}"
+                             Background="Transparent" 
+                             BorderThickness="0" 
+                             SelectionChanged="Chat_SelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             VirtualizingPanel.ScrollUnit="Pixel"
+                             ScrollViewer.CanContentScroll="True">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Margin="10,8">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E2E8F0" FontSize="14" FontWeight="Medium" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Margin="0,0,0,20">
+                    <Grid Margin="0,10,0,0">
+                        <TextBlock Text="Direct Chats" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button Content="＋" Click="InviteDM_Click" HorizontalAlignment="Right" Width="30" Height="30" Background="#420D40" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </Grid>
+                    <ListBox x:Name="LstDMChats" 
+                             ItemsSource="{Binding DirectChatRooms}"
+                             Background="Transparent" 
+                             BorderThickness="0" 
+                             SelectionChanged="Chat_SelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             VirtualizingPanel.ScrollUnit="Pixel"
+                             ScrollViewer.CanContentScroll="True">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Margin="10,8">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E2E8F0" FontSize="14" FontWeight="Medium" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ================= ACTIVE CONVERSATION PANEL ================= -->
+        <Grid Grid.Column="1" Background="#2E0854">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Active Chat Header Window -->
+            <Border Grid.Row="0" Background="#48018f" Padding="15,12" BorderBrush="#48018f" BorderThickness="0,0,0,1">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock VerticalAlignment="Center" Text="💬" FontSize="18" Margin="0,0,8,0" Foreground="White"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Binding ActiveChatRoom.DisplayName, FallbackValue='Select a conversation'}" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Main Message List Panel (Visible only when chat is Active/Approved) -->
+            <ListBox Grid.Row="1" 
+                     ItemsSource="{Binding Messages}"
+                     x:Name="ChatMessagesList"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Padding="10"
+                     HorizontalContentAlignment="Stretch"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     VirtualizingPanel.ScrollUnit="Pixel">
+                <ListBox.Style>
+                    <Style TargetType="ListBox">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <!-- Hide entire message stream if the current chat room invitation status is pending approval -->
+                            <DataTrigger Binding="{Binding ActiveChatRoom.ApprovalStatus}" Value="Pending">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.Style>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border x:Name="MsgBubble"
+                                HorizontalAlignment="Left"
+                                Background="#431B6B" 
+                                BorderBrush="#5C2B92"
+                                CornerRadius="12" 
+                                Padding="12,10" 
+                                Margin="4,0" 
+                                MaxWidth="550"
+                                BorderThickness="1">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock 
+                                        x:Name="TxtSender" 
+                                        Grid.Column="0" 
+                                        Text="{Binding Sender.Email}" 
+                                        FontWeight="SemiBold" 
+                                        FontSize="12" 
+                                        Foreground="#D2B4FA"/>
+                                    <TextBlock 
+                                        x:Name="TxtTime" 
+                                        Grid.Column="1" 
+                                        Text="{Binding SentAt, StringFormat={}{0:HH:mm}}" 
+                                        FontSize="10" 
+                                        Foreground="#94A3B8"/>
+                                </Grid>
+                                <TextBlock x:Name="TxtBody" Text="{Binding MessageText}" FontSize="13" Foreground="White" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsFromMe}" Value="True">
+                                <!-- Direct target overrides for the bubble layout container -->
+                                <Setter TargetName="MsgBubble" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="MsgBubble" Property="Background" Value="#00F2FE"/>
+                                <Setter TargetName="MsgBubble" Property="BorderBrush" Value="#00C6FF"/>
+
+                                <!-- Direct target overrides for the typography -->
+                                <Setter TargetName="TxtSender" Property="Text" Value="You"/>
+                                <Setter TargetName="TxtSender" Property="Foreground" Value="#0F172A"/>
+                                <Setter TargetName="TxtBody" Property="Foreground" Value="#0F172A"/>
+                                <Setter TargetName="TxtTime" Property="Foreground" Value="#475569"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Grid.Row="1"
+        Background="Transparent"
+        VerticalAlignment="Center"
+        HorizontalAlignment="Center">
+
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ActiveChatRoom}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="💬"
+                               FontSize="48"
+                               HorizontalAlignment="Center"
+                               Foreground="AliceBlue"
+                               Margin="0,0,0,15"/>
+
+                    <TextBlock Text="No conversation selected"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="AliceBlue"
+                               HorizontalAlignment="Center"/>
+
+                    <TextBlock Text="Choose a project channel or direct message to begin chatting."
+                   FontSize="13"
+                   Foreground="#94A3B8"
+                   TextAlignment="Center"
+                   Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ================= NEW INVITATION SYSTEM BANNER LAYOUT ================= -->
+            <!-- This card fills the workspace stream if the current user needs to accept an incoming message offer -->
+            <Border Grid.Row="1" Margin="30" Padding="30" Background="#FFFFFF" CornerRadius="12" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="450">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <!-- MultiDataTrigger: Show invitation panel only if room is Pending AND you are not the one who sent the request -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding ActiveChatRoom.ApprovalStatus}" Value="Pending"/>
+                                    <Condition Binding="{Binding ActiveChatRoom.AmITheInviter}" Value="False"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="✉️" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                    <TextBlock Text="Chat Invitation" FontSize="18" FontWeight="Bold" Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock Text="This user wants to connect with you. Conversations start only after your consent is given." 
+                               FontSize="13" Foreground="#64748B" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,24"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Accept Connection" Click="BtnAccept_Click" Width="150" Height="38" FontWeight="SemiBold" Background="#3B82F6" Foreground="White" BorderThickness="0" Margin="0,0,12,0"/>
+                        <Button Content="Decline" Click="BtnDecline_Click" Width="100" Height="38" FontWeight="SemiBold" Background="#EF4444" Foreground="White" BorderThickness="0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Outbound Waiting Notice Screen -->
+            <Border Grid.Row="1" Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <!-- Show waiting notice if room is Pending and you are the person who initiated it -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding ActiveChatRoom.ApprovalStatus}" Value="Pending"/>
+                                    <Condition Binding="{Binding ActiveChatRoom.AmITheInviter}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="⏳" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock Text="Waiting for recipient's consent..." FontSize="14" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Input Bar Panel -->
+            <Border Grid.Row="2" Background="#48018f" Padding="12" BorderBrush="#48018f" BorderThickness="0,1,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- TextBox blocks typing automatically if approval is missing -->
+                    <TextBox Grid.Column="0" 
+                             x:Name="TxtMessageInput"
+                             Padding="10,8" FontSize="13" Background="#F1F5F9" BorderThickness="0" VerticalAlignment="Center" Tag="Type a message..."
+                             GotFocus="TextBox_GotFocus" LostFocus="TextBox_LostFocus">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                <Setter Property="IsEnabled" Value="True"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanChat}" Value="False">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                        <Setter Property="Text" Value="Messaging is disabled until the invite is accepted."/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                        <TextBox.Resources>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </TextBox.Resources>
+                    </TextBox>
+
+                    <Button Grid.Column="1" 
+                            Content="Send" 
+                            Click="BtnSendMessage_Click"
+                            Width="65" Height="34" Margin="8,0,0,0" Background="#2E0854" Foreground="White" FontWeight="SemiBold" BorderThickness="0">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled" Value="True"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanChat}" Value="Pending">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
