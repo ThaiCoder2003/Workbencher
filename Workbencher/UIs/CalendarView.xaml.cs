@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -15,11 +16,64 @@ namespace Workbencher.UIs
     public partial class CalendarView : UserControl
     {
         private int _userId;
+        private HubConnection TaskHub;
         public ObservableCollection<TaskItem> AllTasks { get; set; } = new ObservableCollection<TaskItem>();
-        public CalendarView()
+        public CalendarView(HubConnection taskHub)
         {
             InitializeComponent();
+            TaskHub = taskHub;
+            RegisterHubHandlers();
             LoadWorkspaceTasks();
+        }
+
+        private void RegisterHubHandlers()
+        {
+            TaskHub.On<int>("TaskMentioned", OnTasksChanged);
+        }
+
+        private void OnTasksChanged(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadWorkspaceTasksOfSelected();
+            });
+        }
+
+        private void LoadWorkspaceTasksOfSelected()
+        {
+            try
+            {
+                _userId = AppSession.Instance.CurrentUserId;
+                using (var _db = new WorkDbContext())
+                {
+                    var authorizedProjects = _db.ProjectMembers
+                        .Where(pm => pm.UserId == _userId)
+                        .Select(pm => pm.ProjectId)
+                        .ToList();
+                    var tasks = _db.Tasks
+                        .Where(t => (authorizedProjects.Contains(t.ProjectId.Value) && t.AssignedToUserId == _userId) || (_userId == t.CreatedByUserId && t.ProjectId == null))
+                        .OrderBy(t => t.Deadline)
+                        .ToList();
+                    AllTasks.Clear();
+                    foreach (var task in tasks)
+                    {
+                        AllTasks.Add(task);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading data: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            foreach (var task in AllTasks)
+            {
+                Console.WriteLine(task.Deadline);
+            }
+            if (MainWorkspaceCalendar.SelectedDate.HasValue)
+            {
+                DateTime selectedDate = MainWorkspaceCalendar.SelectedDate.Value;
+                UpdateSelectedDisplay(selectedDate);
+            }
         }
 
         private void LoadWorkspaceTasks()
