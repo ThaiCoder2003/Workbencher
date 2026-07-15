@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
 using System.Linq;
@@ -33,14 +34,78 @@ namespace Workbencher.UIs.ProjectDetailView
             return null;
         }
         private int _projectId;
-        public ProjectDashboardView(int projectId)
+        private HubConnection ProjectHub;
+        private HubConnection TaskHub;
+        public ProjectDashboardView(int projectId, HubConnection projectHub, HubConnection taskConnection)
         {
             InitializeComponent();
             _projectId = projectId;
+            ProjectHub = projectHub;
+            TaskHub = taskConnection;
+            RegisterHubHandlers();
             CalculateStatistics();
             LoadProjectInfo();
+            LoadMembers();
+        }
+        private void RegisterHubHandlers()
+        {
+            ProjectHub.On<int, int>("ProjectJoinApproved", OnInvitationApproved);
+            ProjectHub.On<int, int>("ProjectLeft", OnProjectLeft);
+            TaskHub.On<int>("TaskAssigned", OnTaskAssigned);
+            TaskHub.On<int>("TaskDeleted", OnTaskDeleted);
+            TaskHub.On<int>("TaskStatusUpdated", OnTaskStatus);
         }
 
+        // Remove the duplicate OnTaskAssigned method definition
+        private void OnTaskAssigned(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                CalculateStatistics();
+            });
+        }
+
+        private void OnTaskDeleted(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                CalculateStatistics();
+            });
+        }
+
+        private void OnTaskStatus(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                CalculateStatistics();
+            });
+        }
+        private void OnInvitationApproved(int projectId, int userId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (projectId == _projectId)
+                {
+                    if (userId != AppSession.Instance.CurrentUserId)
+                    {
+                        LoadMembers();
+                    }
+                }
+            });
+        }
+        private void OnProjectLeft(int projectId, int userId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (projectId == _projectId)
+                {
+                    if (userId != AppSession.Instance.CurrentUserId)
+                    {
+                        LoadMembers();
+                    }
+                }
+            });
+        }
         private void LoadProjectInfo()
         {
             try
@@ -89,8 +154,24 @@ namespace Workbencher.UIs.ProjectDetailView
                     else
                     {
                         TxtCompletionPercentage.Text = "0%";
+                        ProgressProject.Value = 0;
                     }
+                }
 
+                this.DataContext = this;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading data: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadMembers()
+        {
+            try
+            {
+                using (var _db = new WorkDbContext())
+                {
                     var members = _db.ProjectMembers
                         .Where(pm => pm.ProjectId == _projectId)
                         .Include(pm => pm.User)
@@ -99,8 +180,6 @@ namespace Workbencher.UIs.ProjectDetailView
                     TxtTeamSize.Text = $"{members.Count} Members";
                     LvTeamRoster.ItemsSource = members;
                 }
-
-                this.DataContext = this;
             }
             catch (Exception ex)
             {

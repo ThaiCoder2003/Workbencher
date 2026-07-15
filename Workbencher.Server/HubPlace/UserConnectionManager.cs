@@ -2,44 +2,59 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public static class UserConnectionManager
+public class ConnectionManager
 {
-    private static readonly ConcurrentDictionary<int, HashSet<string>> _connections = new();
+    private readonly ConcurrentDictionary<int, HashSet<string>> _connections = new();
 
-    public static void AddConnection(int userId, string connectionId)
+    public void AddConnection(int userId, string connectionId)
     {
-        var connections = _connections.GetOrAdd(userId, _ => new HashSet<string>());
+        var set = _connections.GetOrAdd(userId, _ => new HashSet<string>());
 
-        lock (connections)
+        lock (set)
         {
-            connections.Add(connectionId);
+            set.Add(connectionId);
         }
     }
 
-    public static void RemoveConnection(int userId, string connectionId)
+    public void RemoveConnection(int userId, string connectionId)
     {
-        if (_connections.TryGetValue(userId, out var connections))
+        if (_connections.TryGetValue(userId, out var set))
         {
-            lock (connections)
+            lock (set)
             {
-                connections.Remove(connectionId);
+                set.Remove(connectionId);
 
-                if (connections.Count == 0)
+                if (set.Count == 0)
                     _connections.TryRemove(userId, out _);
             }
         }
     }
 
-    public static IEnumerable<string> GetConnections(int userId)
+    public IEnumerable<string> GetConnections(int userId)
     {
-        if (_connections.TryGetValue(userId, out var connections))
+        if (_connections.TryGetValue(userId, out var set))
         {
-            lock (connections)
+            lock (set)
             {
-                return connections.ToList();
+                return set.ToList();
             }
         }
 
         return Enumerable.Empty<string>();
     }
+}
+
+public static class ChatConnectionManager
+{
+    public static readonly ConnectionManager Instance = new();
+}
+
+public static class ProjectConnectionManager
+{
+    public static readonly ConnectionManager Instance = new();
+}
+
+public static class TaskConnectionManager
+{
+    public static readonly ConnectionManager Instance = new();
 }

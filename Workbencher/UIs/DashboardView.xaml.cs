@@ -18,7 +18,12 @@ namespace Workbencher.UIs
     {
         private int _userId;
         private int _pendingTaskCount;
-        public int ProjectCount { get; set; }
+        private int _projectCount;
+        public int ProjectCount
+        {
+            get => _projectCount;
+            set { _projectCount = value; OnPropertyChanged(); }
+        }
         public int PendingTaskCount
         {
             get => _pendingTaskCount;
@@ -36,16 +41,19 @@ namespace Workbencher.UIs
         public DashboardView()
         {
             InitializeComponent();
-            _userId = AppSession.Instance.CurrentUserId;
-            LoadData();
+            DataContext = this;
+            this.Loaded += (s, e) => LoadData();
         }
         private void LoadData()
         {
+            _userId = AppSession.Instance.CurrentUserId;
             try
             {
                 using (var _db = new WorkDbContext())
                 {
-                    ProjectCount = _db.Projects.Count();
+                    ProjectCount = _db.ProjectMembers
+                        .Where(prm => prm.UserId == _userId)
+                        .Count();
                     PendingTaskCount = _db.Tasks.Count(t => t.Status != "Completed" && ((t.ProjectId != null && t.AssignedToUserId == _userId) || (t.CreatedByUserId == _userId && t.ProjectId == null)));
                     DateTime closeToDeadline = DateTime.UtcNow.AddDays(3);
 

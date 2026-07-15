@@ -33,7 +33,7 @@ namespace Workbencher
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             // ⬇️ UNCOMMENT THIS ONE LINE TEMPORARILY TO WIPE THE OLD FILE ON THE NEXT LAUNCH:
-            //ClearSession();
+            ClearSession();
             if (CheckSession(out string email))
             {
                 // If a session exists, go straight to the main window

@@ -1,16 +1,18 @@
-﻿using System;
+﻿using GongSolutions.Wpf.DragDrop;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.EntityFrameworkCore;
+using Workbencher.Config;
 using Workbencher.Database;
 using Workbencher.Database.Models;
-using Workbencher.Config;
 using Workbencher.Windows;
-using GongSolutions.Wpf.DragDrop;
 using GongDragDrop = GongSolutions.Wpf.DragDrop.DragDrop;
-using System.Collections.Generic;
 namespace Workbencher.UIs
 {
     /// <summary>
@@ -23,16 +25,33 @@ namespace Workbencher.UIs
         public ObservableCollection<TaskItem> InProgressTaskList { get; set; } = new ObservableCollection<TaskItem>();
         public ObservableCollection<TaskItem> CompletedTaskList { get; set; } = new ObservableCollection<TaskItem>();
         public ObservableCollection<TaskItem> OverdueTaskList { get; set; } = new ObservableCollection<TaskItem>();
-        private int userId = AppSession.Instance.CurrentUserId;
-        public KanbanView()
+        private HubConnection TaskHub;
+        private int userId;
+        public KanbanView(HubConnection taskHub)
         {
             InitializeComponent();
+            TaskHub = taskHub;
             userId = AppSession.Instance.CurrentUserId;
             if (userId == 0)
             {
                 return;
             }
+            RegisterHubHandlers();
             InitializeProjectFilter();
+        }
+
+        private void RegisterHubHandlers()
+        {
+            TaskHub.On<int>("TaskMentioned", OnTasksChanged);
+        }
+
+        // Remove the duplicate OnTaskAssigned method definition
+        private void OnTasksChanged(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadTask();
+            });
         }
 
         private void LoadTask()
@@ -60,7 +79,6 @@ namespace Workbencher.UIs
                             .Where(t => (authorizedProjects.Contains(t.ProjectId.Value) && t.AssignedToUserId == userId) || (userId == t.CreatedByUserId && t.ProjectId == null))
                             .OrderBy(t => t.Position)
                             .ToList();
-
                     }
 
                     else if (selectedIndex == 1)
@@ -151,7 +169,7 @@ namespace Workbencher.UIs
                 button.IsEnabled = false;
                 bool isReadOnly = (taskToEdit.ProjectId != null);
 
-                var editWindow = new EditWindow(taskToEdit, isReadOnly);
+                var editWindow = new EditWindow(taskToEdit, isReadOnly, TaskHub);
                 if (editWindow.ShowDialog() == true)
                 {
                     LoadTask(); // Refresh layout configurations upon change confirmations
@@ -178,7 +196,7 @@ namespace Workbencher.UIs
                     {
                         using (var _db = new WorkDbContext())
                         {
-                            ObservableCollection<TaskItem> targetCollection = null;
+                            ObservableCollection<TaskItem>? targetCollection = null;
                             if (ToDoTaskList.Contains(taskToDelete))
                                 targetCollection = ToDoTaskList;
                             else if (InProgressTaskList.Contains(taskToDelete))
@@ -226,7 +244,7 @@ namespace Workbencher.UIs
             }
         }
 
-        public void Drop(IDropInfo dropInfo)
+        public async void Drop(IDropInfo dropInfo)
         {
             if (dropInfo.Data is TaskItem task && dropInfo.TargetCollection is ObservableCollection<TaskItem> targetCollection)
             {
@@ -238,20 +256,13 @@ namespace Workbencher.UIs
                 else if (targetListBox.Name == "CompletedTasks") targetStatus = "Completed";    
 
                 GongDragDrop.DefaultDropHandler.Drop(dropInfo);
-
                 task.Status = targetStatus;
 
                 try
                 {
+                    await UpdateStatus(task, targetStatus);
                     using (var _db = new WorkDbContext())
                     {
-                        // Update the database with the new status and position of each task in the target collection
-                        var draggedTask = _db.Tasks.Find(task.Id);
-                        if (draggedTask != null) {
-                            draggedTask.Status = targetStatus;
-                            _db.Entry(draggedTask).State = EntityState.Modified;
-                        }
-
                         for (int i = 0; i < targetCollection.Count; i++)
                         {
                             var currentItem = targetCollection[i];
@@ -261,8 +272,7 @@ namespace Workbencher.UIs
                             if (dbTask != null)
                             {
                                 if (CboWorkspaceFilter.SelectedIndex != 0)
-                                {
-                                    dbTask.Status = targetStatus;
+                                { 
                                     dbTask.Position = i; // Save its exact layout row sequence index (0, 1, 2...)
                                     _db.Entry(dbTask).State = EntityState.Modified;
                                     // Sync the in-memory object position property too
@@ -270,7 +280,6 @@ namespace Workbencher.UIs
                                 }
                             }
                         }
-
 
                         // If the task originally came from a different collection, update its position there as well
                         var sourceCollection = dropInfo.DragInfo.SourceCollection as ObservableCollection<TaskItem>;
@@ -299,6 +308,31 @@ namespace Workbencher.UIs
             }
         }
 
+        private async Task UpdateStatus(TaskItem task, string targetStatus)
+        {
+            if (task.ProjectId != null)
+            {
+                await TaskHub.InvokeAsync(
+                    "UpdateTaskStatus",
+                    task.Id,
+                    targetStatus);
+            }
+            else
+            {
+                using (var _db = new WorkDbContext())
+                {
+                    var draggedTask = await _db.Tasks.Where(t => t.Id == task.Id).FirstAsync();
+                    if (draggedTask != null)
+                    {
+                        draggedTask.Status = targetStatus;
+                        _db.Entry(draggedTask).State = EntityState.Modified;
+                        await _db.SaveChangesAsync();
+                    }
+                }
+            }
+        }
+
+
         private async void CreateTask_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(TxtNewTitle.Text))
@@ -311,7 +345,7 @@ namespace Workbencher.UIs
             {
                 using (var _db = new WorkDbContext())
                 {
-                    var foundUser = _db.Users.Find(userId);
+                    var foundUser = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
                     if (foundUser == null)
                     {
                         MessageBox.Show("User not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);

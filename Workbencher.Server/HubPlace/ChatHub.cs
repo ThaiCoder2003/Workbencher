@@ -26,7 +26,7 @@ namespace Workbencher.HubPlace
         private static readonly ConcurrentDictionary<string, int> _connectionUsers = new();
         public Task RegisterConnection(int userId)
         {
-            UserConnectionManager.AddConnection(userId, Context.ConnectionId);
+            ChatConnectionManager.Instance.AddConnection(userId, Context.ConnectionId);
             _connectionUsers[Context.ConnectionId] = userId;
             return Task.CompletedTask;
         }
@@ -35,7 +35,7 @@ namespace Workbencher.HubPlace
         {
             if (_connectionUsers.TryRemove(Context.ConnectionId, out int userId))
             {
-                UserConnectionManager.RemoveConnection(userId, Context.ConnectionId);
+                ChatConnectionManager.Instance.RemoveConnection(userId, Context.ConnectionId);
             }
 
             return base.OnDisconnectedAsync(exception);
@@ -98,7 +98,7 @@ namespace Workbencher.HubPlace
 
                     await _db.SaveChangesAsync();
 
-                    foreach (var connection in UserConnectionManager.GetConnections(recipientId))
+                    foreach (var connection in ChatConnectionManager.Instance.GetConnections(recipientId))
                     {
                         await Clients.Client(connection)
                             .SendAsync("InvitationReceived", room.Id);
@@ -138,7 +138,7 @@ namespace Workbencher.HubPlace
                     await _db.SaveChangesAsync();
                     foreach (var member in room.Members)
                     {
-                        foreach (var connection in UserConnectionManager.GetConnections(member.UserId))
+                        foreach (var connection in ChatConnectionManager.Instance.GetConnections(member.UserId))
                         {
                             await Clients.Client(connection)
                                 .SendAsync("ChatApproved", room.Id);
@@ -185,7 +185,7 @@ namespace Workbencher.HubPlace
                     await _db.SaveChangesAsync();
                     foreach (var memberId in memberIds)
                     {
-                        foreach (var connection in UserConnectionManager.GetConnections(memberId))
+                        foreach (var connection in ChatConnectionManager.Instance.GetConnections(memberId))
                         {
                             await Clients.Client(connection)
                                 .SendAsync("ChatDeclined", room.Id);

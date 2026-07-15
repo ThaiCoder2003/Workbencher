@@ -173,8 +173,8 @@
 
                                             <TextBlock Grid.Column="0" Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" TextWrapping="Wrap"/>
 
-                                            <Border Grid.Column="1" Background="#FEE2E2" CornerRadius="4" Padding="6,2" VerticalAlignment="Top" Margin="4,0,0,0">
-                                                <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold" Foreground="{Binding Status, Converter={StaticResource StatusDisplayConverter}}"/>
+                                            <Border Grid.Column="1" Background="{Binding Status, Converter={StaticResource StatusDisplayConverter}}" CornerRadius="4" Padding="6,2" VerticalAlignment="Top" Margin="4,0,0,0">
+                                                <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold" Foreground="Black"/>
                                             </Border>
                                         </Grid>
 

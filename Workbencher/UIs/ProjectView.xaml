@@ -70,7 +70,7 @@
 
             <StackPanel x:Name="PnlTabs" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20" Visibility="Collapsed">
                 <RadioButton Content="📊 Dashboard &amp; Stats" Style="{StaticResource ToggleButtonStyle}" Click="Tab_Dashboard_Click" IsChecked="True" Padding="15,8" Margin="0,0,10,0"/>
-                <RadioButton x:Name="TabAdminTasks" Content="📋 Assign Tasks (Admin)" Style="{StaticResource ToggleButtonStyle}" Click="Tab_Tasks_Click" Padding="15,8" Margin="0,0,10,0"/>
+                <RadioButton x:Name="TabTasks" Content="📋 Tasks" Style="{StaticResource ToggleButtonStyle}" Click="Tab_Tasks_Click" Padding="15,8" Margin="0,0,10,0"/>
                 <RadioButton x:Name="TabInvite" Content="✉️ Team Invites" Style="{StaticResource ToggleButtonStyle}" Click="Tab_Invites_Click" Padding="15,8"/>
             </StackPanel>
 

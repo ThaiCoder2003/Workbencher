@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -17,14 +20,74 @@ namespace Workbencher.UIs.ProjectDetailView
     public partial class ProjectTaskAssignView : UserControl
     {
         private int _projectId;
+        private HubConnection TaskHub;
         public ObservableCollection<TaskItem> ProjectTasks { get; set; } = new ObservableCollection<TaskItem>();
-        public ProjectTaskAssignView(int projectId)
+        public ProjectTaskAssignView(int projectId, HubConnection taskHub)
         {
             InitializeComponent();
             _projectId = projectId;
+            TaskHub = taskHub;
             DgTasks.ItemsSource = ProjectTasks;
+            RegisterHubHandlers();
+            CheckAdmin();
             LoadMembers();
             LoadTasks();
+        }
+        private void RegisterHubHandlers()
+        {
+            TaskHub.On<int>("TaskAssigned", OnTaskAssigned);
+            TaskHub.On<int>("TaskEdited", OnTaskEdited);
+            TaskHub.On<int>("TaskDeleted", OnTaskDeleted);
+            TaskHub.On<int>("TaskStatusUpdated", OnTaskStatus);
+        }
+
+        // Remove the duplicate OnTaskAssigned method definition
+        private void OnTaskAssigned(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadTasks();
+            });
+        }
+
+        private void OnTaskEdited(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadTasks();
+            });
+        }
+
+        private void OnTaskDeleted(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadTasks();
+            });
+        }
+
+        private void OnTaskStatus(int taskId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadTasks();
+            });
+        }
+        private async void CheckAdmin()
+        {
+            using (var _db = new WorkDbContext()) 
+            {
+                var role = await _db.ProjectMembers
+                    .Where(pm => pm.ProjectId == _projectId &&
+                                 pm.UserId == AppSession.Instance.CurrentUserId)
+                    .Select(pm => pm.Role)
+                    .FirstOrDefaultAsync();
+
+                Assign_Panel.Visibility =
+                    role == "Admin"
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
         }
 
         private void LoadMembers()
@@ -85,63 +148,29 @@ namespace Workbencher.UIs.ProjectDetailView
 
             try
             {
-                using (var _db = new WorkDbContext())
+                int targetAssignee = (int)CbAssignee.SelectedValue;
+                DateTime deadline;
+                if (DPDeadline.SelectedDate.HasValue)
                 {
-                    int targetAssignee = (int)CbAssignee.SelectedValue;
-                    int assigner = AppSession.Instance.CurrentUserId;
-                    var assignerInfo = await _db.Users
-                        .FirstOrDefaultAsync(u => assigner == u.Id);
-                    if (assignerInfo == null)
-                    {
-                        MessageBox.Show("User not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    var projectInfo = await _db.Projects
-                        .FirstOrDefaultAsync(p => p.Id == _projectId);
-                    if (projectInfo == null) 
-                    {
-                        MessageBox.Show("Project not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    DateTime deadline;
-                    if (DPDeadline.SelectedDate.HasValue)
-                    {
-                        deadline = DateTime.SpecifyKind(DPDeadline.SelectedDate.Value, DateTimeKind.Utc);
-                    }
-                    else
-                    {
-                        deadline = DateTime.UtcNow.AddDays(7); // Default to 7 days from now
-                    }
-                    int activeTaskCount = _db.Tasks.Count(t => t.ProjectId == _projectId && t.Status == "To Do");
-                    var newTask = new TaskItem
-                    {
-                        Title = title,
-                        Description = String.IsNullOrEmpty(description) ? null : description,
-                        Status = "To Do",
-                        Position = activeTaskCount,
-                        ProjectId = _projectId,
-                        Project = projectInfo,
-                        AssignedToUserId = targetAssignee,
-                        CreatedByUserId = assigner,
-                        CreatedByUser = assignerInfo,
-                        Deadline = deadline
-                    };
-
-                    _db.Tasks.Add(newTask);
-                    _db.SaveChanges();
-
-                    ProjectTasks.Add(newTask); // Update UI table array
-
-                    // Clear inputs
-                    TxtTitle.Clear();
-                    TxtDescription.Clear();
-                    DPDeadline.SelectedDate = null;
-                    CbAssignee.SelectedIndex = -1;
+                    // PROPER CONVERSION: Specify local kind, then convert to UTC
+                    deadline = DateTime.SpecifyKind(DPDeadline.SelectedDate.Value, DateTimeKind.Local).ToUniversalTime();
                 }
+                else
+                {
+                    deadline = DateTime.UtcNow.AddDays(7);
+                }
+
+                await TaskHub.InvokeAsync("AssignTask", targetAssignee, title, String.IsNullOrWhiteSpace(description) ? null : description, _projectId, deadline);
+
+                // Clear inputs
+                TxtTitle.Clear();
+                TxtDescription.Clear();
+                DPDeadline.SelectedDate = null;
+                CbAssignee.SelectedIndex = -1;
             }
-            catch (Exception ex)
+            catch (HubException ex)
             {
-                MessageBox.Show($"Error loading data: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error assigning task: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -151,7 +180,7 @@ namespace Workbencher.UIs.ProjectDetailView
             if (btn?.Tag is TaskItem selectedTask)
             {
                 // Open our standard EditWindow. Since the admin is editing, isReadOnly is false.
-                var editWin = new EditWindow(selectedTask, isReadOnly: false);
+                var editWin = new EditWindow(selectedTask, isReadOnly: false, taskHub: TaskHub);
                 editWin.Owner = Window.GetWindow(this);
 
                 if (editWin.ShowDialog() == true)
@@ -160,7 +189,7 @@ namespace Workbencher.UIs.ProjectDetailView
                 }
             }
         }
-        private void DeleteTask_Click(object sender, RoutedEventArgs e)
+        private async void DeleteTask_Click(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button;
             if (btn?.Tag is TaskItem selectedTask)
@@ -170,19 +199,10 @@ namespace Workbencher.UIs.ProjectDetailView
                 {
                     try
                     {
-                        using (var db = new WorkDbContext())
-                        {
-                            var dbTask = db.Tasks.Find(selectedTask.Id);
-                            if (dbTask != null)
-                            {
-                                db.Tasks.Remove(dbTask);
-                                db.SaveChanges();
-
-                                ProjectTasks.Remove(selectedTask); // Remove from tracking collection directly
-                            }
-                        }
+                        await TaskHub.InvokeAsync("DeleteTask", selectedTask.Id);
                     }
-                    catch (Exception ex)
+
+                    catch (HubException ex)
                     {
                         MessageBox.Show($"Failed dropping target item record: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }

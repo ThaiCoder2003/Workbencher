@@ -1,11 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using Workbencher.Config;
-using Workbencher.Database.Models;
 using Workbencher.Database;
+using Workbencher.Database.Models;
 using Workbencher.Windows;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 namespace Workbencher.UIs.ProjectDetailView
 {
     /// <summary>
@@ -16,16 +19,47 @@ namespace Workbencher.UIs.ProjectDetailView
         private int _projectId;
         public ObservableCollection<Invitation> SentInvitations { get; set; } = new ObservableCollection<Invitation>();
         private int _senderId;
-        public SendInvitationView(int projectId)
+        public HubConnection ProjectHub { get; private set; }
+        public SendInvitationView(int projectId, HubConnection projectHub)
         {
             InitializeComponent();
             _projectId = projectId;
             _senderId = AppSession.Instance.CurrentUserId;
             DgSentInvites.ItemsSource = SentInvitations;
+            ProjectHub = projectHub;
+            RegisterHubHandlers();
             CheckAdmin();
             LoadInvitations();
         }
+        private void RegisterHubHandlers()
+        {
+            ProjectHub.On<int, int>("ProjectJoinApproved", OnInvitationApprovedAsync);
+            ProjectHub.On<int, int>("ProjectJoinDeclined", OnInvitationDeclinedAsync);
+        }
 
+        private async Task OnInvitationApprovedAsync(int projectId, int userId)
+        {
+            await Task.Delay(250);
+            await Task.Delay(250);
+            if (projectId == _projectId && _senderId != userId)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    LoadInvitations();
+                });
+            }
+        }
+        private async Task OnInvitationDeclinedAsync(int projectId, int userId)
+        {
+            await Task.Delay(250);
+            if (projectId == _projectId && _senderId != userId)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    LoadInvitations();
+                });
+            }
+        }
         private void CheckAdmin()
         {
             try
@@ -61,6 +95,7 @@ namespace Workbencher.UIs.ProjectDetailView
                 using (var _db = new WorkDbContext())
                 {
                     var invitations = await _db.Invitations
+                        .AsNoTracking()
                         .Where(inv => inv.ProjectId == _projectId)
                         .Include(inv => inv.Receiver)
                         .OrderBy(inv => inv.Id)
@@ -91,49 +126,18 @@ namespace Workbencher.UIs.ProjectDetailView
 
             try
             {
-                using (var _db = new WorkDbContext())
-                {
-                    var yourself = await _db.Users
-                        .FirstOrDefaultAsync(u => u.Id == _senderId);
-                    if (yourself == null)
-                    {
-                        MessageBox.Show("User not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    var user = await _db.Users
-                        .Where(u => u.Email == email)
-                        .FirstOrDefaultAsync();
+                await ProjectHub.InvokeAsync("InviteToProject", email, message, _projectId);
 
-                    if (user == null)
-                    {
-                        MessageBox.Show("This email does not exist! Try again!", "Email does not exist!", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    var invitation = new Invitation
-                    {
-                        ProjectId = _projectId,
-                        SenderId = _senderId,
-                        Sender = yourself,
-                        ReceiverId = user!.Id,
-                        Receiver = user,
-                        Status = "Pending",
-                        CreatedAt = DateTime.UtcNow,
-                        InviteMessage = string.IsNullOrWhiteSpace(message) ? null : message
-                    };
-
-                    _db.Invitations.Add(invitation);
-                    await _db.SaveChangesAsync();
-
-                    MessageBox.Show("Invitation sent successfully!", "Sent!", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Invitation sent successfully!", "Sent!", MessageBoxButton.OK, MessageBoxImage.Information);
 
                     TxtEmail.Clear();
                     TxtMessage.Clear();
-                }
+                LoadInvitations();
+                
             }
-            catch (Exception ex)
+            catch (HubException ex)
             {
-                MessageBox.Show($"Error making Invitation: {ex.Message}", "Invitation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error sending invitation: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

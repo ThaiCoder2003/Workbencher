@@ -5,13 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Workbencher.Windows"
         Title="Edit Task"
-        Height="400" Width="400"
+        Height="330" Width="400"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#F8FAFC">
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -37,12 +36,8 @@
             <TextBlock Text="Deadline" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4" FontSize="12"/>
             <DatePicker x:Name="DPDeadline" Padding="4"/>
         </StackPanel>
-        <StackPanel Grid.Row="3" Margin="0,0,0,16">
-            <TextBlock Text="Select Project" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4" FontSize="12"/>
-            <ComboBox x:Name="CbProject" DisplayMemberPath="Name" SelectedValuePath="Id" Padding="5"/>
-        </StackPanel>
 
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
             <Button x:Name="CancelBtn" Content="Cancel" Click="Cancel_Click" Width="80" Height="30" Background="#E2E8F0" Foreground="#475569" BorderThickness="0" Margin="0,0,8,0">
                 <Button.Resources>
                     <Style TargetType="Border">

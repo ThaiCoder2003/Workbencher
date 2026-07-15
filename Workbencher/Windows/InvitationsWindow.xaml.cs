@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -15,10 +16,13 @@ namespace Workbencher.Windows
     public partial class InvitationsWindow : Window
     {
         private int _userId;
+        private HubConnection ProjectHub;
         public ObservableCollection<Invitation> Invitations { get; set; } = new ObservableCollection<Invitation>();
-        public InvitationsWindow()
+        public InvitationsWindow(HubConnection projectHub)
         {
             InitializeComponent();
+            ProjectHub = projectHub;
+            RegisterHubHandlers();
             _userId = AppSession.Instance.CurrentUserId;
             LstInvitations.ItemsSource = Invitations;
             LoadInvitations();
@@ -50,7 +54,20 @@ namespace Workbencher.Windows
             }
         }
 
-        private void Accept_Click(object sender, RoutedEventArgs e)
+        private void RegisterHubHandlers()
+        {
+            ProjectHub.On<int>("InvitationReceived", OnInvitationReceived);
+        }
+
+        private void OnInvitationReceived(int projectId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadInvitations();
+            });
+        }
+
+        private async void Accept_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             if (button?.Tag is Invitation invitation)
@@ -60,48 +77,7 @@ namespace Workbencher.Windows
                     var result = MessageBox.Show($"Are you sure you want to accept the invitation to '{invitation.Project.Name}'?", "Confirm Accept", MessageBoxButton.YesNo, MessageBoxImage.Information);
                     if (result == MessageBoxResult.Yes) 
                     {
-                        using (var _db = new WorkDbContext())
-                        {
-                            var foundInv = _db.Invitations
-                                .FirstOrDefault(inv => inv.Id == invitation.Id);
-
-                            
-                            if (foundInv != null)
-                            {
-                                foundInv.Status = "Accepted";
-
-                                _db.Entry(foundInv).State = EntityState.Modified;
-
-                                var newMember = new ProjectMember
-                                {
-                                    UserId = _userId,
-                                    User = invitation.Receiver,
-                                    ProjectId = invitation.ProjectId,
-                                    Project = invitation.Project,
-                                    Role = "Member",
-                                    JoinedAt = DateTime.UtcNow,
-                                };
-
-                                _db.ProjectMembers.Add(newMember);
-                                _db.SaveChanges();
-
-                                // Add the user to the project's chat room
-                                var chatRoom = _db.ChatRooms.FirstOrDefault(cr => cr.ProjectId == invitation.ProjectId);
-                                if (chatRoom != null)
-                                {
-                                    var newChatRoomMember = new ChatRoomMember
-                                    {
-                                        UserId = _userId,
-                                        User = invitation.Receiver,
-                                        ChatRoomId = chatRoom.Id,
-                                        ChatRoom = chatRoom,
-                                        JoinedAt = DateTime.UtcNow,
-                                    };
-                                    _db.ChatRoomMembers.Add(newChatRoomMember);
-                                    _db.SaveChanges();
-                                }
-                            }
-                        }
+                        await ProjectHub.InvokeAsync("AcceptInvitation", invitation.Id);
 
                         MessageBox.Show($"Welcome to '{invitation.Project.Name}'!", "Welcome Alert", MessageBoxButton.OK, MessageBoxImage.Information);
                         Invitations.Remove(invitation);
@@ -116,7 +92,7 @@ namespace Workbencher.Windows
             }
         }
 
-        private void Decline_Click(object sender, RoutedEventArgs e)
+        private async void Decline_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             if (button?.Tag is Invitation invitation)
@@ -126,20 +102,7 @@ namespace Workbencher.Windows
                     var result = MessageBox.Show($"Are you sure you want to decline the invitation to '{invitation.Project.Name}'?", "Confirm Accept", MessageBoxButton.YesNo, MessageBoxImage.Information);
                     if (result == MessageBoxResult.Yes)
                     {
-                        using (var _db = new WorkDbContext())
-                        {
-                            var foundInv = _db.Invitations
-                                .FirstOrDefault(inv => inv.Id == invitation.Id);
-
-                            if (foundInv != null)
-                            {
-                                foundInv.Status = "Declined";
-
-                                _db.Entry(foundInv).State = EntityState.Modified;
-
-                                _db.SaveChanges();
-                            }
-                        }
+                        await ProjectHub.InvokeAsync("DeclineInvitation", invitation.Id);
 
                         MessageBox.Show($"'{invitation.Project.Name}' invitation declined!", "Decline Alert", MessageBoxButton.OK, MessageBoxImage.Information);
                         Invitations.Remove(invitation);

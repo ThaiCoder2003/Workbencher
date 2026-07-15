@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
 using Workbencher.Config;
-using Workbencher.Database.Models;
 using Workbencher.Database;
+using Workbencher.Database.Models;
 
 namespace Workbencher.Windows
 {
@@ -14,16 +16,18 @@ namespace Workbencher.Windows
     public partial class EditWindow : Window
     {
         public ObservableCollection<Project> ProjectList { get; set; } = new ObservableCollection<Project>();
+        private HubConnection TaskHub;
         private TaskItem _task;
-        public EditWindow(TaskItem task, bool isReadOnly)
+        public EditWindow(TaskItem task, bool isReadOnly, HubConnection taskHub)
         {
             InitializeComponent();
             _task = task;
+            TaskHub = taskHub;
+           
             LoadData();
             TxtTitle.Text = _task.Title;
             TxtDescription.Text = _task.Description;
             DPDeadline.SelectedDate = _task.Deadline;
-            CbProject.SelectedValue = _task.ProjectId;
 
             if (isReadOnly)
             {
@@ -33,7 +37,6 @@ namespace Workbencher.Windows
 
                 // 🔒 Lock down dropdown and date controls
                 DPDeadline.IsEnabled = false;
-                CbProject.IsEnabled = false;
 
                 // Optional: Change background or add a message label so the user knows why it's locked
                 TxtTitle.Background = Brushes.GhostWhite;
@@ -66,7 +69,7 @@ namespace Workbencher.Windows
             }
         }
 
-        private void Save_Click(object sender, RoutedEventArgs e)
+        private async void Save_Click(object sender, RoutedEventArgs e)
         {
             if (String.IsNullOrWhiteSpace(TxtTitle.Text))
             {
@@ -79,27 +82,55 @@ namespace Workbencher.Windows
                 return;
             }
 
-            using (var _db = new WorkDbContext())
+            if (_task.ProjectId != null)
             {
-                var taskToUpdate = _db.Tasks.Find(_task.Id);
-                if (taskToUpdate != null)
+                try
                 {
-                    taskToUpdate.Title = TxtTitle.Text;
-                    taskToUpdate.Description = TxtDescription.Text;
-                    taskToUpdate.Deadline = DPDeadline.SelectedDate ?? DateTime.UtcNow.AddDays(7);
-                    taskToUpdate.ProjectId = (int?)CbProject.SelectedValue;
+                    string title = TxtTitle.Text.Trim();
+                    string? description = string.IsNullOrWhiteSpace(TxtDescription.Text)
+                        ? null
+                        : TxtDescription.Text.Trim();
 
-                    _db.Entry(taskToUpdate).State = EntityState.Modified;
-
-                    _task.Title = taskToUpdate.Title;
-                    _task.Description = taskToUpdate.Description;
-                    _task.Deadline = taskToUpdate.Deadline;
-                    _db.SaveChanges();
+                    DateTime? deadline = DPDeadline.SelectedDate.HasValue
+                        ? DateTime.SpecifyKind(DPDeadline.SelectedDate.Value, DateTimeKind.Local).ToUniversalTime()
+                        : null;
+                    await TaskHub.InvokeAsync("EditTask", _task.Id, title, description, deadline);
+                    this.DialogResult = true;
+                    this.Close();
+                }
+                catch (HubException ex)
+                {
+                    MessageBox.Show($"Error editing task: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
 
-            this.DialogResult = true;
-            this.Close();
+            else
+            {
+                try
+                {
+                    using (var _db = new WorkDbContext())
+                    {
+                        var taskToUpdate = _db.Tasks.Find(_task.Id);
+                        if (taskToUpdate != null)
+                        {
+                            taskToUpdate.Title = TxtTitle.Text;
+                            taskToUpdate.Description = TxtDescription.Text;
+                            taskToUpdate.Deadline = DPDeadline.SelectedDate ?? DateTime.UtcNow.AddDays(7);
+
+                            _db.Entry(taskToUpdate).State = EntityState.Modified;
+
+                            _task.Title = taskToUpdate.Title;
+                            _task.Description = taskToUpdate.Description;
+                            _task.Deadline = taskToUpdate.Deadline;
+                            _db.SaveChanges();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error assigning task: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
@@ -107,5 +138,6 @@ namespace Workbencher.Windows
             this.DialogResult = false;
             this.Close();
         }
+
     }
 }

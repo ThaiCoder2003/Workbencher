@@ -1,15 +1,17 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.VisualBasic;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using Microsoft.VisualBasic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Workbencher.Config;
 using Workbencher.Database;
 using Workbencher.Database.Models;
-using Workbencher.Config;
-using Workbencher.Windows;
 using Workbencher.UIs.ProjectDetailView;
+using Workbencher.Windows;
 
 namespace Workbencher.UIs
 {
@@ -18,16 +20,86 @@ namespace Workbencher.UIs
     /// </summary>
     public partial class ProjectView : UserControl
     {
-        private int selectedProjectId;
+        private int selectedProjectId = -1;
         private int userId;
-        private bool isAdmin;
         public ObservableCollection<Project> UserProjects { get; set; } = new ObservableCollection<Project>();
-        public ProjectView()
+        private HubConnection ProjectHub;
+        private HubConnection TaskHub;
+        public ProjectView(HubConnection projectHub, HubConnection taskHub)
         {
             InitializeComponent();
+            ProjectHub = projectHub;
+            TaskHub = taskHub;
+            RegisterHubHandlers();
             userId = AppSession.Instance.CurrentUserId;
             LstProjects.ItemsSource = UserProjects;
             LoadUserWorkspaceData();
+        }
+        private void RegisterHubHandlers()
+        {
+            ProjectHub.On<int>("InvitationReceived", OnInvitationReceived);
+            ProjectHub.On<int, int>("ProjectJoinApproved", OnInvitationApproved);
+            ProjectHub.On<int, int>("ProjectLeft", OnProjectLeft);
+        }
+
+        private void OnInvitationReceived(int invitationId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadUserWorkspaceData();
+            });
+        }
+        private async Task JoinProject(int projectId)
+        {
+            try
+            {
+                if (selectedProjectId > -1)
+                {
+                    await TaskHub.InvokeAsync("LeaveProject", selectedProjectId);
+                }
+
+                selectedProjectId = projectId;
+
+                await TaskHub.InvokeAsync("JoinProject", selectedProjectId);
+
+            
+            }
+            catch (HubException ex)
+            {
+                MessageBox.Show($"Error joining chat: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnInvitationApproved(int projectId, int _userId)
+        {
+            if (_userId == userId)
+            {
+                Dispatcher.Invoke(async () =>
+                {
+
+                    LoadUserWorkspaceData();
+
+                    await JoinProject(projectId);
+
+                    PnlTabs.Visibility = Visibility.Visible;
+                    WorkspaceFrame.Content = new ProjectDashboardView(selectedProjectId, ProjectHub, TaskHub);
+
+                });
+            }
+        }
+        private void OnProjectLeft(int projectId, int _userId)
+        {
+            if (_userId == userId)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    LoadUserWorkspaceData();
+                    selectedProjectId = -1;
+                    PnlTabs.Visibility = Visibility.Visible;
+                    WorkspaceFrame.Content = PnlNoProjectSelected;
+
+                });
+            }
         }
 
         public void LoadUserWorkspaceData()
@@ -88,13 +160,16 @@ namespace Workbencher.UIs
                 if (createWin.NewCreatedProject != null)
                 {
                     UserProjects.Add(createWin.NewCreatedProject);
+                    selectedProjectId = createWin.NewCreatedProject.Id;
+                    PnlTabs.Visibility = Visibility.Visible;
+                    WorkspaceFrame.Content = new ProjectDashboardView(selectedProjectId, ProjectHub, TaskHub);
                 }
             }
         }
 
         private void ViewInvitations_Click(object sender, RoutedEventArgs e)
         {
-            var inviteWin = new InvitationsWindow();
+            var inviteWin = new InvitationsWindow(ProjectHub);
 
             inviteWin.Owner = Window.GetWindow(this);
             if (inviteWin.ShowDialog() == true)
@@ -105,12 +180,12 @@ namespace Workbencher.UIs
 
         private void Tab_Dashboard_Click(object sender, RoutedEventArgs e)
         {
-            WorkspaceFrame.Content = new ProjectDashboardView(selectedProjectId);
+            WorkspaceFrame.Content = new ProjectDashboardView(selectedProjectId, ProjectHub, TaskHub);
         }
 
         private void Tab_Tasks_Click(object sender, RoutedEventArgs e)
         {
-            WorkspaceFrame.Content = new ProjectTaskAssignView(selectedProjectId);
+            WorkspaceFrame.Content = new ProjectTaskAssignView(selectedProjectId, TaskHub);
         }
 
         private void Tab_Invites_Click(object sender, RoutedEventArgs e)
@@ -122,29 +197,19 @@ namespace Workbencher.UIs
         {
             // Select the tab
             TabInvite.IsChecked = true;
-            WorkspaceFrame.Content = new SendInvitationView(selectedProjectId);
+            WorkspaceFrame.Content = new SendInvitationView(selectedProjectId, ProjectHub); 
         }
 
-        private void LstProjects_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void LstProjects_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (LstProjects.SelectedItem is Project selected)
             {
-                selectedProjectId = selected.Id;
+                await JoinProject(selected.Id);
                 PnlTabs.Visibility = Visibility.Visible;
 
                 using (var _db = new WorkDbContext())
                 {
-                    var membership = _db.ProjectMembers
-                        .FirstOrDefault(pm => pm.ProjectId == selectedProjectId && pm.UserId == userId);
-
-                    if (membership.Role == "Admin")
-                    {
-                        isAdmin = true;
-                    }
-
-                    TabAdminTasks.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
-
-                    WorkspaceFrame.Content = new ProjectDetailView.ProjectDashboardView(selectedProjectId);
+                    WorkspaceFrame.Content = new ProjectDashboardView(selectedProjectId, ProjectHub, TaskHub);
                 }
             }
         }

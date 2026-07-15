@@ -34,7 +34,8 @@ namespace Workbencher.UIs
         private int _userId;
 
         private int? _chatRoomId;
-        public HubConnection Connection { get; private set; }
+        public HubConnection ChatHub { get; private set; }
+        public HubConnection ProjectHub { get; private set; }
         public ObservableCollection<Message> Messages { get; set; } = new();
         public ObservableCollection<ChatRoom> GroupChatRooms { get; set; } = new();
         public ObservableCollection<ChatRoom> DirectChatRooms { get; set; } = new();
@@ -60,10 +61,11 @@ namespace Workbencher.UIs
         }
         private void RegisterHubHandlers()
         {
-            Connection.On<int>("InvitationReceived", OnInvitationReceived);
-            Connection.On<int>("ChatApproved", OnChatApproved);
-            Connection.On<MessageDto>("ReceiveMessage", OnReceiveMessage);
-            Connection.On<int>("ChatDeclined", OnChatDeclined);
+            ChatHub.On<int>("InvitationReceived", OnInvitationReceived);
+            ChatHub.On<int>("ChatApproved", OnChatApproved);
+            ChatHub.On<MessageDto>("ReceiveMessage", OnReceiveMessage);
+            ChatHub.On<int>("ChatDeclined", OnChatDeclined);
+            ProjectHub.On<int>("ChatJoined", OnChatJoined);
         }
         private void OnInvitationReceived(int roomId)
         {
@@ -116,6 +118,14 @@ namespace Workbencher.UIs
             });
         }
 
+        private void OnChatJoined(int roomId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadChats();
+            });
+        }
+
         public void OpenProjectChat(int projectId)
         {
             using (var db = new WorkDbContext())
@@ -132,11 +142,12 @@ namespace Workbencher.UIs
                 }
             }
         }
-        public ChatView(HubConnection hubConnection)
+        public ChatView(HubConnection chatHub, HubConnection projectHub)
         {
             InitializeComponent();
             _userId = AppSession.Instance.CurrentUserId;
-            Connection = hubConnection;
+            ChatHub = chatHub;
+            ProjectHub = projectHub;
             RegisterHubHandlers();
             DataContext = this;
             LoadChats();
@@ -227,14 +238,14 @@ namespace Workbencher.UIs
             {
                 if (ActiveChatRoom != null && ActiveChatRoom.Id != chatRoom.Id)
                 {
-                    await Connection.InvokeAsync("LeaveRoom", ActiveChatRoom.Id);
+                    await ChatHub.InvokeAsync("LeaveRoom", ActiveChatRoom.Id);
                 }
 
                 ActiveChatRoom = chatRoom;
                 _chatRoomId = chatRoom.Id;
 
                 if (CanChat)
-                    await Connection.InvokeAsync("JoinRoom", ActiveChatRoom.Id);
+                    await ChatHub.InvokeAsync("JoinRoom", ActiveChatRoom.Id);
 
                 LoadMessages();
             }
@@ -263,7 +274,7 @@ namespace Workbencher.UIs
                     }
                     try
                     {
-                        await Connection.InvokeAsync("CreateInvitation", user.Id);
+                        await ChatHub.InvokeAsync("CreateInvitation", user.Id);
                     }
                     catch (HubException ex)
                     {
@@ -288,7 +299,7 @@ namespace Workbencher.UIs
             int roomId = ActiveChatRoom.Id;
             try 
             {
-                await Connection.InvokeAsync("ApproveInvitation", ActiveChatRoom.Id);
+                await ChatHub.InvokeAsync("ApproveInvitation", ActiveChatRoom.Id);
                 ActiveChatRoom =
                     GroupChatRooms.FirstOrDefault(r => r.Id == roomId)
                     ?? DirectChatRooms.FirstOrDefault(r => r.Id == roomId);
@@ -361,7 +372,7 @@ namespace Workbencher.UIs
                     string messageText = TxtMessageInput.Text.Trim();
                     if (!string.IsNullOrEmpty(messageText))
                     {
-                        await Connection.InvokeAsync("BroadcastMessage", ActiveChatRoom.Id, messageText);
+                        await ChatHub.InvokeAsync("BroadcastMessage", ActiveChatRoom.Id, messageText);
                         TxtMessageInput.Text = string.Empty;
                     }
                 }
