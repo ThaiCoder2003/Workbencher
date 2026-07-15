@@ -78,7 +78,7 @@ namespace Workbencher.Windows
     public partial class MainWindow : Window
     {
         private readonly DashboardView _dashboardView = new();
-        private readonly CalendarView _calendarView = new();
+        private CalendarView? _calendarView;
 
         private KanbanView? _kanbanView;
         private ChatView? _chatView;
@@ -144,7 +144,9 @@ namespace Workbencher.Windows
                     MainContentPresenter.Content = _kanbanView;
                     break;
                 case "Calendar":
-                    MainContentPresenter.Content = _calendarView;
+                    _calendarView ??= new CalendarView(_hubManager.TaskHub);
+
+                    MainContentPresenter.Content = _chatView;
                     break;
                 case "Chat":
                     _chatView ??= new ChatView(_hubManager.ChatHub, _hubManager.ProjectHub);
